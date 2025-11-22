@@ -39,6 +39,38 @@ namespace restaurantOrder.Controllers
             }
 
             return products;
+
+
+        }
+
+        // 3. YENİ ÜRÜN EKLEME (CREATE)
+        // POST: api/Products
+        [HttpPost]
+        public async Task<ActionResult<Product>> PostProduct(Product product)
+        {
+            // Veritabanına ekle
+            _context.Products.Add(product);
+            await _context.SaveChangesAsync();
+
+            // Başarılı kodu (201 Created) döndür
+            return CreatedAtAction("GetProducts", new { id = product.Id }, product);
+        }
+
+        // 4. ÜRÜN SİLME (DELETE)
+        // DELETE: api/Products/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteProduct(int id)
+        {
+            var product = await _context.Products.FindAsync(id);
+            if (product == null)
+            {
+                return NotFound("Silinecek ürün bulunamadı.");
+            }
+
+            _context.Products.Remove(product);
+            await _context.SaveChangesAsync();
+
+            return NoContent(); // Başarılı ama geriye veri dönmüyorum demek
         }
     }
 }

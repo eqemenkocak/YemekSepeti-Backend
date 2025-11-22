@@ -19,9 +19,11 @@ public partial class Product
 
     public decimal Price { get; set; }
 
-    public virtual Category Category { get; set; } = null!;
+    // Soru işareti (?) ekleyerek "Bunlar gönderilmese de olur, ben ID'den bulurum" diyoruz.
+    public virtual Category? Category { get; set; }
+    public virtual Restaurant? Restaurant { get; set; }
 
     public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 
-    public virtual Restaurant Restaurant { get; set; } = null!;
+    
 }
