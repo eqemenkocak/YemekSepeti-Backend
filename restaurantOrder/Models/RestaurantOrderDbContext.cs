@@ -1,6 +1,7 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore;
+using YemekSepetim.Models;
 
 namespace restaurantOrder.Models;
 
@@ -20,6 +21,8 @@ public partial class RestaurantOrderDbContext : DbContext
     public virtual DbSet<Category> Categories { get; set; }
 
     public virtual DbSet<Courier> Couriers { get; set; }
+
+    public virtual DbSet<ProductRating> ProductRatings { get; set; }
 
     public virtual DbSet<DeliveryAssignment> DeliveryAssignments { get; set; }
 

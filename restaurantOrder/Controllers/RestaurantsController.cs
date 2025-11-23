@@ -1,17 +1,18 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using restaurantOrder.Models;
+using restaurantOrder.Models; // Model namespace'inin doğru olduğundan emin ol
 
-
-namespace RestaurantOrder.Controllers
+namespace restaurantOrder.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     public class RestaurantsController : ControllerBase
     {
-        private readonly RestaurantsOrderDbContext _context;
+        // DÜZELTME: RestaurantsOrderDbContext -> RestaurantOrderDbContext (Tekil)
+        private readonly RestaurantOrderDbContext _context;
 
-        public RestaurantsController(RestaurantsOrderDbContext context)
+        // Constructor'da da aynısını yapıyoruz:
+        public RestaurantsController(RestaurantOrderDbContext context)
         {
             _context = context;
         }
@@ -20,7 +21,7 @@ namespace RestaurantOrder.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Restaurant>>> GetRestaurants()
         {
-            // Restoranları getirirken kategorilerini de dahil etmek istersen Include kullanabilirsin
+            // Restoranları getir
             return await _context.Restaurants.ToListAsync();
         }
 

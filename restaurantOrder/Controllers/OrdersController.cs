@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore; // Include için gerekli
+using Microsoft.EntityFrameworkCore;
 using restaurantOrder.Models;
 
 namespace restaurantOrder.Controllers
@@ -15,7 +15,7 @@ namespace restaurantOrder.Controllers
             _context = context;
         }
 
-        // POST: Sipariş Oluşturma
+        // 1. SİPARİŞ OLUŞTURMA (POST)
         [HttpPost]
         public IActionResult CreateOrder([FromBody] OrderRequest request)
         {
@@ -24,7 +24,7 @@ namespace restaurantOrder.Controllers
                 CustomerId = request.UserId,
                 RestaurantId = request.RestaurantId,
                 TotalAmount = request.TotalAmount,
-                Status = "Bekleniyor...", // 👈 1. DEĞİŞİKLİK: İlk durum artık bu!
+                Status = "Bekleniyor...",
                 PaymentMethod = "Kredi Kartı",
                 AddressId = 1
             };
@@ -52,21 +52,20 @@ namespace restaurantOrder.Controllers
             return Ok(new { message = "Sipariş başarıyla alındı!", orderId = newOrder.Id });
         }
 
-        // GET: Restorana Özel Siparişleri Getir (Detaylı)
+        // 2. RESTORANA ÖZEL SİPARİŞLER (GET)
         [HttpGet("ByRestaurant/{restaurantId}")]
         public IActionResult GetOrdersByRestaurant(int restaurantId)
         {
             var orders = _context.Orders
                 .Where(o => o.RestaurantId == restaurantId)
-                .Include(o => o.OrderItems)      // İlişkili tabloları dahil et
-                .ThenInclude(oi => oi.Product)   // Ürün isimlerine ulaşmak için
+                .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Product)
                 .OrderByDescending(o => o.Id)
                 .Select(o => new
                 {
                     o.Id,
                     o.TotalAmount,
                     o.Status,
-                    // 👈 2. DEĞİŞİKLİK: Yemek isimlerini virgülle birleştirip gönderiyoruz
                     Items = o.OrderItems.Select(oi => oi.Product.Name).ToList()
                 })
                 .ToList();
@@ -74,23 +73,52 @@ namespace restaurantOrder.Controllers
             return Ok(orders);
         }
 
-        // PUT: Sipariş Durumunu Güncelle (YENİ ÖZELLİK 🚀)
+        // 3. SİPARİŞ DURUMU GÜNCELLEME (PUT)
         [HttpPut("UpdateStatus/{id}")]
         public IActionResult UpdateStatus(int id, [FromBody] StatusRequest request)
         {
             var order = _context.Orders.Find(id);
             if (order == null) return NotFound();
 
-            order.Status = request.Status; // Yeni durumu yaz
-            _context.SaveChanges(); // Kaydet
+            order.Status = request.Status;
+            _context.SaveChanges();
 
             return Ok(new { message = "Durum güncellendi" });
         }
 
-        // Durum güncellemek için minik bir model
+        // 4. MÜŞTERİYE ÖZEL SİPARİŞLER (BU METOD SINIFIN İÇİNDE OLMALIYDI) 👇
+        // 4. MÜŞTERİYE ÖZEL SİPARİŞLER (DÜZELTİLMİŞ VERSİYON)
+        [HttpGet("ByCustomer/{customerId}")]
+        public IActionResult GetOrdersByCustomer(int customerId)
+        {
+            var orders = _context.Orders
+                .Where(o => o.CustomerId == customerId)
+                .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Product)
+                .OrderByDescending(o => o.Id)
+                .Select(o => new
+                {
+                    o.Id,
+                    o.TotalAmount,
+                    o.Status,
+                    // DÜZELTME BURADA: Artık sadece isim değil, ID + İsim gönderiyoruz
+                    Items = o.OrderItems.Select(oi => new
+                    {
+                        ProductId = oi.ProductId,      // <--- Puan vermek için bu LAZIM!
+                        ProductName = oi.Product.Name
+                    }).ToList(),
+                    RestaurantName = o.Restaurant.Name
+                })
+                .ToList();
+
+            return Ok(orders);
+        }
+
+        // Yardımcı Model (Class içinde kalabilir)
         public class StatusRequest
         {
             public string Status { get; set; }
         }
-    }
-}
+
+    } // Class Burada Bitiyor ✅
+} // Namespace Burada Bitiyor ✅

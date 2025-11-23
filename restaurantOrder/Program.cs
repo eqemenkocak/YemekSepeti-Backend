@@ -1,10 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using restaurantOrder.Models; // <-- En önemli kısım: Senin proje ismin küçük r ile başlıyor
+using System.Text.Json.Serialization; // <--- 1. KRİTİK EKLEME: Bu kütüphane şart!
+using restaurantOrder.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ---------------------------------------------------------
-// 1. Veritabanı Bağlantısı Ayarı
+// 1. Veritabanı Bağlantısı
 // ---------------------------------------------------------
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
@@ -12,7 +13,7 @@ builder.Services.AddDbContext<RestaurantOrderDbContext>(options =>
     options.UseSqlServer(connectionString));
 
 // ---------------------------------------------------------
-// 2. CORS Ayarı (React, API'ye erişebilsin diye ŞART)
+// 2. CORS Ayarı (React İçin)
 // ---------------------------------------------------------
 builder.Services.AddCors(options =>
 {
@@ -26,12 +27,16 @@ builder.Services.AddCors(options =>
 });
 
 // ---------------------------------------------------------
-// 3. Standart Servisler
+// 3. Standart Servisler ve JSON Döngü Ayarı
 // ---------------------------------------------------------
-builder.Services.AddControllers();
-// Veritabanı Bağlantı Servisi (Bu eksik olduğu için hata veriyor)
-builder.Services.AddDbContext<restaurantOrder.Models.RestaurantsOrderDbContext>(options =>
-    options.UseSqlServer("Server=EGEMENK38\\SQLEXPRESS;Database=RestaurantsOrderDB;Trusted_Connection=True;TrustServerCertificate=True;"));
+
+// 2. KRİTİK DÜZELTME BURADA 👇
+// "ReferenceHandler.IgnoreCycles" diyerek sonsuz döngü hatasını engelliyoruz.
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -48,7 +53,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// CORS'u burada devreye alıyoruz (React için)
+// CORS Middleware
 app.UseCors("AllowAll");
 
 app.UseAuthorization();

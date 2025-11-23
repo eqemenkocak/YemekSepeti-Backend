@@ -25,5 +25,9 @@ public partial class Product
 
     public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 
-    
+    // Veritabanında decimal(3,1) yaptığımız için burada decimal kullanıyoruz.
+    // Varsayılan değeri 0 olsun.
+    public decimal AverageScore { get; set; }
+
+
 }
