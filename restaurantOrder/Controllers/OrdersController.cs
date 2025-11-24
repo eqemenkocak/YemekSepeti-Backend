@@ -26,7 +26,7 @@ namespace restaurantOrder.Controllers
                 TotalAmount = request.TotalAmount,
                 Status = "Bekleniyor...",
                 PaymentMethod = "Kredi Kartı",
-                AddressId = 1
+                AddressId = 1 // İlerde dinamik adres seçimi eklenebilir
             };
 
             _context.Orders.Add(newOrder);
@@ -52,21 +52,36 @@ namespace restaurantOrder.Controllers
             return Ok(new { message = "Sipariş başarıyla alındı!", orderId = newOrder.Id });
         }
 
-        // 2. RESTORANA ÖZEL SİPARİŞLER (GET)
+        // 2. RESTORANA ÖZEL SİPARİŞLER (GÜNCELLENMİŞ HALİ: PUANLAR DAHİL)
         [HttpGet("ByRestaurant/{restaurantId}")]
         public IActionResult GetOrdersByRestaurant(int restaurantId)
         {
             var orders = _context.Orders
                 .Where(o => o.RestaurantId == restaurantId)
-                .Include(o => o.OrderItems)
-                .ThenInclude(oi => oi.Product)
+                .Include(o => o.OrderItems).ThenInclude(oi => oi.Product)
+                .Include(o => o.Customer)
+                .Include(o => o.Address)
                 .OrderByDescending(o => o.Id)
                 .Select(o => new
                 {
                     o.Id,
                     o.TotalAmount,
                     o.Status,
-                    Items = o.OrderItems.Select(oi => oi.Product.Name).ToList()
+                    CustomerName = o.Customer.FullName,
+                    AddressText = o.Address != null ? o.Address.FullAddress : "Adres Yok",
+
+                    // --- DEĞİŞİKLİK BURADA ---
+                    // Artık sadece isim değil, Puan bilgisini de çekiyoruz.
+                    Items = o.OrderItems.Select(oi => new
+                    {
+                        Name = oi.Product.Name,
+                        // Bu sipariş (o.Id) ve bu ürün (oi.ProductId) için puan verilmiş mi?
+                        Score = _context.ProductRatings
+                                    .Where(r => r.OrderId == o.Id && r.ProductId == oi.ProductId)
+                                    .Select(r => r.Score)
+                                    .FirstOrDefault() // Puan varsa sayıyı, yoksa 0 döndürür
+                    }).ToList()
+                    // -------------------------
                 })
                 .ToList();
 
@@ -86,39 +101,47 @@ namespace restaurantOrder.Controllers
             return Ok(new { message = "Durum güncellendi" });
         }
 
-        // 4. MÜŞTERİYE ÖZEL SİPARİŞLER (BU METOD SINIFIN İÇİNDE OLMALIYDI) 👇
-        // 4. MÜŞTERİYE ÖZEL SİPARİŞLER (DÜZELTİLMİŞ VERSİYON)
+        // 4. MÜŞTERİYE ÖZEL SİPARİŞLER (GET) - SİPARİŞ GEÇMİŞİ İÇİN 🛠️
         [HttpGet("ByCustomer/{customerId}")]
         public IActionResult GetOrdersByCustomer(int customerId)
         {
             var orders = _context.Orders
                 .Where(o => o.CustomerId == customerId)
-                .Include(o => o.OrderItems)
-                .ThenInclude(oi => oi.Product)
+                .Include(o => o.OrderItems).ThenInclude(oi => oi.Product)
+                .Include(o => o.Customer)
+                .Include(o => o.Address)
                 .OrderByDescending(o => o.Id)
                 .Select(o => new
                 {
                     o.Id,
                     o.TotalAmount,
                     o.Status,
-                    // DÜZELTME BURADA: Artık sadece isim değil, ID + İsim gönderiyoruz
+
+                    // Müşteri Adı (User.cs'de FullName olduğu için)
+                    CustomerName = o.Customer.FullName,
+
+                    // Adres Bilgileri (Address.cs'de FullAddress olduğu için)
+                    AddressTitle = o.Address.Title ?? "Adres",
+                    AddressText = o.Address.FullAddress,
+
+                    RestaurantName = o.Restaurant.Name,
+
+                    // Ürün Detayları (Puanlama için ProductId şart)
                     Items = o.OrderItems.Select(oi => new
                     {
-                        ProductId = oi.ProductId,      // <--- Puan vermek için bu LAZIM!
+                        ProductId = oi.ProductId,
                         ProductName = oi.Product.Name
-                    }).ToList(),
-                    RestaurantName = o.Restaurant.Name
+                    }).ToList()
                 })
                 .ToList();
 
             return Ok(orders);
         }
 
-        // Yardımcı Model (Class içinde kalabilir)
+        // Yardımcı Model
         public class StatusRequest
         {
             public string Status { get; set; }
         }
-
-    } // Class Burada Bitiyor ✅
-} // Namespace Burada Bitiyor ✅
+    }
+}
