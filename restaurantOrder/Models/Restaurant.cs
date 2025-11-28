@@ -21,6 +21,8 @@ public partial class Restaurant
 
     public decimal? Rating { get; set; }
 
+    public string? ImageUrl { get; set; }
+
     public virtual ICollection<Category> Categories { get; set; } = new List<Category>();
 
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
@@ -30,4 +32,6 @@ public partial class Restaurant
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 
     public virtual ICollection<RestaurantAddress> RestaurantAddresses { get; set; } = new List<RestaurantAddress>();
+
+    
 }

@@ -17,8 +17,15 @@ namespace restaurantOrder.Controllers
 
         // 1. SİPARİŞ OLUŞTURMA (POST)
         [HttpPost]
+        [HttpPost]
         public IActionResult CreateOrder([FromBody] OrderRequest request)
         {
+            // 1. Kullanıcının adresini bul (İlk bulduğunu al)
+            var userAddress = _context.Addresses.FirstOrDefault(a => a.UserId == request.UserId);
+
+            // Eğer adresi yoksa varsayılan olarak 1'i kullan (Hata vermesin diye)
+            int addressToUse = userAddress != null ? userAddress.Id : 1;
+
             var newOrder = new Order
             {
                 CustomerId = request.UserId,
@@ -26,12 +33,13 @@ namespace restaurantOrder.Controllers
                 TotalAmount = request.TotalAmount,
                 Status = "Bekleniyor...",
                 PaymentMethod = "Kredi Kartı",
-                AddressId = 1 // İlerde dinamik adres seçimi eklenebilir
+                AddressId = addressToUse // 👈 ARTIK DİNAMİK!
             };
 
             _context.Orders.Add(newOrder);
             _context.SaveChanges();
 
+            // ... (OrderItems ekleme kısmı aynı kalacak) ...
             foreach (var productId in request.ProductIds)
             {
                 var product = _context.Products.Find(productId);
