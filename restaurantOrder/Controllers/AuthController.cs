@@ -15,12 +15,10 @@ namespace restaurantOrder.Controllers
             _context = context;
         }
 
-        // --- DİKKAT: BURADA SADECE BİR TANE LOGIN METODU OLMALI ---
-
+        // --- GİRİŞ YAPMA (LOGIN) ---
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            // 1. Kullanıcıyı bul
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email == request.Email && u.PasswordHash == request.Password);
 
@@ -29,13 +27,12 @@ namespace restaurantOrder.Controllers
                 return Unauthorized(new { message = "Email veya şifre hatalı!" });
             }
 
-            // 2. BU KİŞİNİN SAHİP OLDUĞU RESTORANI BUL 🔍
+            // Kişinin restoranını bul (Varsa ID'sini al, yoksa 0)
             var myRestaurant = await _context.Restaurants
                                              .FirstOrDefaultAsync(r => r.OwnerUserId == user.Id);
 
             int myRestaurantId = myRestaurant != null ? myRestaurant.Id : 0;
 
-            // 3. Frontend'e Doğru ID'yi Gönder
             return Ok(new
             {
                 id = user.Id,
@@ -47,14 +44,18 @@ namespace restaurantOrder.Controllers
             });
         }
 
+        // --- KAYIT OLMA (REGISTER) ---
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto request)
         {
+            // 👇 1. KONTROL BURADA: Bu mail adresi zaten var mı?
             if (await _context.Users.AnyAsync(u => u.Email == request.Email))
             {
-                return BadRequest(new { message = "Bu e-posta adresi zaten kullanılıyor!" });
+                // Varsa HATA fırlatıyoruz
+                return BadRequest(new { message = "Bu e-posta zaten kayıtlı!" });
             }
 
+            // 2. Yoksa yeni kullanıcı oluştur
             var newUser = new User
             {
                 FullName = request.FullName,
@@ -67,7 +68,7 @@ namespace restaurantOrder.Controllers
             _context.Users.Add(newUser);
             await _context.SaveChangesAsync();
 
-            // Adres varsa ekle
+            // 3. Adres varsa ekle
             if (!string.IsNullOrEmpty(request.Address))
             {
                 var newAddress = new Address

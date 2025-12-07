@@ -15,15 +15,12 @@ namespace restaurantOrder.Controllers
             _context = context;
         }
 
-        // 1. SİPARİŞ OLUŞTURMA (POST)
-        [HttpPost]
+        // 1. SİPARİŞ OLUŞTURMA
         [HttpPost]
         public IActionResult CreateOrder([FromBody] OrderRequest request)
         {
-            // 1. Kullanıcının adresini bul (İlk bulduğunu al)
+            // Kullanıcının adresini bul (İlk bulduğunu al)
             var userAddress = _context.Addresses.FirstOrDefault(a => a.UserId == request.UserId);
-
-            // Eğer adresi yoksa varsayılan olarak 1'i kullan (Hata vermesin diye)
             int addressToUse = userAddress != null ? userAddress.Id : 1;
 
             var newOrder = new Order
@@ -32,14 +29,13 @@ namespace restaurantOrder.Controllers
                 RestaurantId = request.RestaurantId,
                 TotalAmount = request.TotalAmount,
                 Status = "Bekleniyor...",
-                PaymentMethod = "Kredi Kartı",
-                AddressId = addressToUse // 👈 ARTIK DİNAMİK!
+                PaymentMethod = request.PaymentMethod, // Ödeme yöntemi buradan geliyor
+                AddressId = addressToUse
             };
 
             _context.Orders.Add(newOrder);
             _context.SaveChanges();
 
-            // ... (OrderItems ekleme kısmı aynı kalacak) ...
             foreach (var productId in request.ProductIds)
             {
                 var product = _context.Products.Find(productId);
@@ -60,7 +56,7 @@ namespace restaurantOrder.Controllers
             return Ok(new { message = "Sipariş başarıyla alındı!", orderId = newOrder.Id });
         }
 
-        // 2. RESTORANA ÖZEL SİPARİŞLER (GÜNCELLENMİŞ HALİ: PUANLAR DAHİL)
+        // 2. ADMIN PANELİ İÇİN SİPARİŞLER (DÜZELTİLDİ ✅)
         [HttpGet("ByRestaurant/{restaurantId}")]
         public IActionResult GetOrdersByRestaurant(int restaurantId)
         {
@@ -76,27 +72,26 @@ namespace restaurantOrder.Controllers
                     o.TotalAmount,
                     o.Status,
                     CustomerName = o.Customer.FullName,
-                    AddressText = o.Address != null ? o.Address.FullAddress : "Adres Yok",
+                    AddressText = o.Address != null ? o.Address.FullAddress : "Adres Bilgisi Yok",
 
-                    // --- DEĞİŞİKLİK BURADA ---
-                    // Artık sadece isim değil, Puan bilgisini de çekiyoruz.
+                    // 👇 EKSİK PARÇA BURASIYDI! ARTIK GÖNDERİYORUZ:
+                    PaymentMethod = o.PaymentMethod,
+
                     Items = o.OrderItems.Select(oi => new
                     {
                         Name = oi.Product.Name,
-                        // Bu sipariş (o.Id) ve bu ürün (oi.ProductId) için puan verilmiş mi?
                         Score = _context.ProductRatings
                                     .Where(r => r.OrderId == o.Id && r.ProductId == oi.ProductId)
                                     .Select(r => r.Score)
-                                    .FirstOrDefault() // Puan varsa sayıyı, yoksa 0 döndürür
+                                    .FirstOrDefault()
                     }).ToList()
-                    // -------------------------
                 })
                 .ToList();
 
             return Ok(orders);
         }
 
-        // 3. SİPARİŞ DURUMU GÜNCELLEME (PUT)
+        // 3. DURUM GÜNCELLEME
         [HttpPut("UpdateStatus/{id}")]
         public IActionResult UpdateStatus(int id, [FromBody] StatusRequest request)
         {
@@ -109,7 +104,7 @@ namespace restaurantOrder.Controllers
             return Ok(new { message = "Durum güncellendi" });
         }
 
-        // 4. MÜŞTERİYE ÖZEL SİPARİŞLER (GET) - SİPARİŞ GEÇMİŞİ İÇİN 🛠️
+        // 4. MÜŞTERİ SİPARİŞ GEÇMİŞİ (DÜZELTİLDİ ✅)
         [HttpGet("ByCustomer/{customerId}")]
         public IActionResult GetOrdersByCustomer(int customerId)
         {
@@ -124,17 +119,14 @@ namespace restaurantOrder.Controllers
                     o.Id,
                     o.TotalAmount,
                     o.Status,
-
-                    // Müşteri Adı (User.cs'de FullName olduğu için)
                     CustomerName = o.Customer.FullName,
-
-                    // Adres Bilgileri (Address.cs'de FullAddress olduğu için)
                     AddressTitle = o.Address.Title ?? "Adres",
                     AddressText = o.Address.FullAddress,
-
                     RestaurantName = o.Restaurant.Name,
 
-                    // Ürün Detayları (Puanlama için ProductId şart)
+                    // 👇 EKSİK PARÇA BURASIYDI! ARTIK GÖNDERİYORUZ:
+                    PaymentMethod = o.PaymentMethod,
+
                     Items = o.OrderItems.Select(oi => new
                     {
                         ProductId = oi.ProductId,
@@ -145,8 +137,7 @@ namespace restaurantOrder.Controllers
 
             return Ok(orders);
         }
-
-        // Yardımcı Model
+        
         public class StatusRequest
         {
             public string Status { get; set; }

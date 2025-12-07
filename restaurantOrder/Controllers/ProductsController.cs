@@ -42,6 +42,22 @@ namespace restaurantOrder.Controllers
 
 
         }
+        // 👇 YENİ METOD: Düşük Puanlı (Riskli) Ürünleri Getir
+        [HttpGet("Risky/{restaurantId}")]
+        public async Task<IActionResult> GetRiskyProducts(int restaurantId)
+        {
+            var riskyProducts = await _context.Products
+                .Where(p => p.RestaurantId == restaurantId && p.AverageScore > 0 && p.AverageScore < 3.5m)
+                .Select(p => new {
+                    p.Id,
+                    p.Name,
+                    p.AverageScore,
+                    p.ImageUrl
+                })
+                .ToListAsync();
+
+            return Ok(riskyProducts);
+        }
 
         // 3. YENİ ÜRÜN EKLEME (CREATE)
         // POST: api/Products

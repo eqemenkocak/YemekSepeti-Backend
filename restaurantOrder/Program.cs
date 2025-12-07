@@ -39,6 +39,12 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+// ... diğer servisler ...
+
+// 👇 KALİTE KONTROL JOB'INI EKLİYORUZ
+builder.Services.AddHostedService<restaurantOrder.Services.QualityControlService>();
+
+// ...
 
 var app = builder.Build();
 

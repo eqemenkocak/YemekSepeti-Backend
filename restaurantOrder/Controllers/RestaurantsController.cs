@@ -24,7 +24,27 @@ namespace restaurantOrder.Controllers
             // Restoranları getir
             return await _context.Restaurants.ToListAsync();
         }
+        // ... Diğer metodların altına ...
 
+        // ÖZEL RAPORLAMA METODU (Stored Procedure Kullanır)
+        [HttpGet("Stats/{restaurantId}")]
+        public async Task<IActionResult> GetRestaurantStats(int restaurantId)
+        {
+            // SQL Prosedürünü çağırıyoruz
+            var stats = await _context.Database
+                .SqlQuery<StatsDto>($"EXEC sp_GetRestaurantStats @RestaurantId={restaurantId}")
+                .ToListAsync();
+
+            // Listeden ilk elemanı al (zaten tek satır dönüyor)
+            var result = stats.FirstOrDefault();
+
+            if (result == null)
+            {
+                return Ok(new StatsDto { Revenue = 0, OrderCount = 0, ProductCount = 0 });
+            }
+
+            return Ok(result);
+        }
         // GET: api/Restaurants/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Restaurant>> GetRestaurant(int id)
